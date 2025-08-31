@@ -6,7 +6,7 @@ import pwnlib.term, pwnlib.log, logging
 from bloodhound.ad.utils import ADUtils
 from datetime import datetime, timedelta, timezone
 from certipy.lib.constants import *
-from certipy.lib.security import ActiveDirectorySecurity, CertifcateSecurity as CertificateSecurity, CASecurity
+from certipy.lib.security import ActiveDirectorySecurity, CertificateSecurity as CertificateSecurity, CASecurity
 from certipy.commands.find import filetime_to_str
 from pathlib import Path
 import argparse
@@ -160,10 +160,10 @@ for idx,obj in enumerate(ades.snap.objects):
         schema_version = ADUtils.get_entry_property(obj, 'msPKI-Template-Schema-Version', 0)
 
         certificate_name_flag = ADUtils.get_entry_property(obj, 'msPKI-Certificate-Name-Flag', 0)
-        certificate_name_flag = MS_PKI_CERTIFICATE_NAME_FLAG(int(certificate_name_flag))
+        certificate_name_flag = CertificateNameFlag(int(certificate_name_flag))
 
         enrollment_flag = ADUtils.get_entry_property(obj, 'msPKI-Enrollment-Flag', 0)
-        enrollment_flag = MS_PKI_ENROLLMENT_FLAG(int(enrollment_flag))
+        enrollment_flag = EnrollmentFlag(int(enrollment_flag))
 
         authorized_signatures_required = int(ADUtils.get_entry_property(obj, 'msPKI-RA-Signature', 0))
 
@@ -207,12 +207,12 @@ for idx,obj in enumerate(ades.snap.objects):
         enrollee_supplies_subject = any(
             flag in certificate_name_flag
             for flag in [
-                MS_PKI_CERTIFICATE_NAME_FLAG.ENROLLEE_SUPPLIES_SUBJECT,
+                CertificateNameFlag.ENROLLEE_SUPPLIES_SUBJECT,
             ]
         )
 
         requires_manager_approval = (
-            MS_PKI_ENROLLMENT_FLAG.PEND_ALL_REQUESTS in enrollment_flag
+            EnrollmentFlag.PEND_ALL_REQUESTS in enrollment_flag
         )
 
         security = CertificateSecurity(ADUtils.get_entry_property(obj, "nTSecurityDescriptor", raw=True))
