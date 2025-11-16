@@ -41,6 +41,7 @@ Repository = "https://github.com/c3c/ADExplorerSnapshot.py"
 
 [project.scripts]
 "ADExplorerSnapshot.py" = "adexpsnapshot:main"
+"adexplorersnapshot" = "adexpsnapshot:main"
 
 [tool.setuptools]
 packages = ["adexpsnapshot", "adexpsnapshot.parser"]

@@ -74,7 +74,7 @@ The BOFHound output mode is the preferred output mode. You can then use the BOFH
 
 ```
 uvx git+https://github.com/c3c/ADExplorerSnapshot -m BOFHound snapshot.dat
-uvx bofhound -i .\dc.server.com_1234567890_bofhound.log -o output
+uvx bofhound -i ./dc.server.com_1234567890_bofhound.log -o output
 ```
 
 ![ADExplorerSnapshot.py](meta/adexpsnapshotpy.png)
