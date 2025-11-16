@@ -3,22 +3,13 @@
 # author: dust-life
 
 from adexpsnapshot import ADExplorerSnapshot
-import pwnlib.term, pwnlib.log, logging
 from bloodhound.ad.utils import ADUtils
 from adidnsdump import dnsdump
-
-logging.basicConfig(handlers=[pwnlib.log.console])
-log = pwnlib.log.getLogger(__name__)
-log.setLevel(20)
-
-if pwnlib.term.can_init():
-    pwnlib.term.init()
-log.term_mode = pwnlib.term.term_mode
 
 import sys
 fh = open(sys.argv[1],"rb")
 
-ades = ADExplorerSnapshot(fh, '.', log)
+ades = ADExplorerSnapshot(fh, '.')
 ades.preprocessCached()
 
 findDN = f',CN=MicrosoftDNS,CN=System,{ades.rootdomain}'.lower()

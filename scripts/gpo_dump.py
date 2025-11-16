@@ -2,14 +2,15 @@
 # author: @oddvarmoe
 
 from adexpsnapshot import ADExplorerSnapshot
-import pwnlib.term, pwnlib.log, logging
+from rich.progress import track
 from bloodhound.ad.utils import ADUtils
 from datetime import datetime, timedelta, timezone
 from certipy.lib.constants import *
-from certipy.lib.security import ActiveDirectorySecurity, CertifcateSecurity as CertificateSecurity, CASecurity
+from certipy.lib.security import ActiveDirectorySecurity, CertificateSecurity
 from pathlib import Path
 import argparse
 import os
+import logging
 from typing import List
 
 def valid_directory(path):
@@ -32,16 +33,7 @@ parser.add_argument("snapshot", type=argparse.FileType("rb"), help="Path to the 
 parser.add_argument("-o", "--output_folder", required=True, type=valid_directory, help="Folder to save output to")
 args = parser.parse_args()
 
-logging.basicConfig(handlers=[pwnlib.log.console])
-log = pwnlib.log.getLogger(__name__)
-log.setLevel(20)
-
-if pwnlib.term.can_init():
-    pwnlib.term.init()
-
-log.term_mode = pwnlib.term.term_mode
-
-ades = ADExplorerSnapshot(args.snapshot, ".", log)
+ades = ADExplorerSnapshot(args.snapshot, ".")
 ades.preprocessCached()
 
 # Get snapshot time
@@ -61,7 +53,7 @@ def security_to_bloodhound_aces(security: ActiveDirectorySecurity) -> List:
         if owner_sid in ADUtils.WELLKNOWN_SIDS:
             principal = u'%s-%s' % (ADUtils.ldap2domain(ades.rootdomain).upper(), owner_sid)
             principal_type = ADUtils.WELLKNOWN_SIDS[owner_sid][1].capitalize()
-            principal_accountname = ADUtils.WELLKNOWN_SIDS[sid][0]
+            principal_accountname = ADUtils.WELLKNOWN_SIDS[owner_sid][0]
         else:
             try:
                 entry = ades.snap.getObject(ades.sidcache[owner_sid])
@@ -84,8 +76,6 @@ def security_to_bloodhound_aces(security: ActiveDirectorySecurity) -> List:
         for sid, rights in security.aces.items():
             principal = sid
             principal_type = ""
-
-
 
             if sid in ADUtils.WELLKNOWN_SIDS:
                 principal = u'%s-%s' % (ADUtils.ldap2domain(ades.rootdomain).upper(), sid)
@@ -136,10 +126,9 @@ def security_to_bloodhound_aces(security: ActiveDirectorySecurity) -> List:
 
         return aces
 
-prog = log.progress(f"Going through objects and outputting to files", rate=0.1)
 domainname = ADUtils.ldap2domain(ades.rootdomain).upper()
 
-for idx,obj in enumerate(ades.snap.objects):
+for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
     if 'grouppolicycontainer' in obj.classes:
         name = ADUtils.get_entry_property(obj, 'name')
         displayname = ADUtils.get_entry_property(obj, 'displayname')
@@ -160,8 +149,8 @@ for idx,obj in enumerate(ades.snap.objects):
         computer_version = versionnumber & 0xFFFF
 
         # Convert to human readable timestamp
-        whenchanged = datetime.utcfromtimestamp(ADUtils.get_entry_property(obj, 'whenchanged')).strftime('%Y-%m-%d %H:%M:%S')
-        whencreated = datetime.utcfromtimestamp(ADUtils.get_entry_property(obj, 'whencreated')).strftime('%Y-%m-%d %H:%M:%S')
+        whenchanged = datetime.fromtimestamp(ADUtils.get_entry_property(obj, 'whenchanged'), datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')
+        whencreated = datetime.fromtimestamp(ADUtils.get_entry_property(obj, 'whencreated'), datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')
 
         security = CertificateSecurity(ADUtils.get_entry_property(obj, "nTSecurityDescriptor", raw=True))
 
@@ -180,11 +169,9 @@ for idx,obj in enumerate(ades.snap.objects):
         for ace in aces:
             out_gpo.append(f"{ace}")
 
-    prog.status(f"{idx+1}/{ades.snap.header.numObjects}")
-
 if args.output_folder:
     if out_gpo:
         outFile_gpo = open(Path(args.output_folder / "gpo.txt"), "w")
         outFile_gpo.write(os.linesep.join(map(str, out_gpo)))
 
-    log.info(f"Output written to files in {args.output_folder}")
+    logging.info(f"Output written to files in {args.output_folder}")

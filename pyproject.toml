@@ -2,4 +2,47 @@
 requires = ["setuptools>=43.0.0", "wheel", "setuptools_scm[toml]>=3.4.1"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "ADExplorerSnapshot"
+version = "2.0.0"
+description = "ADExplorerSnapshot.py is an AD Explorer snapshot parser. It is made as an ingestor for BOFHound / BloodHound, and also supports full-object dumping to NDJSON."
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Cedric Van Bockhaven", email = "cedric@cedric.ninja"}
+]
+maintainers = [
+    {name = "Cedric Van Bockhaven", email = "cedric@cedric.ninja"}
+]
+keywords = ["bloodhound", "active-directory", "ad-explorer", "ldap", "security"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security"
+]
+dependencies = [
+    "bloodhound-ce @ git+https://github.com/dirkjanm/BloodHound.py@bloodhound-ce",
+    "dissect.cstruct>=2.0",
+    "frozendict",
+    "requests",
+    "rich>=13.0.0",
+    "certipy-ad>=5.0.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/c3c/ADExplorerSnapshot.py"
+Repository = "https://github.com/c3c/ADExplorerSnapshot.py"
+
+[project.scripts]
+"ADExplorerSnapshot.py" = "adexpsnapshot:main"
+
+[tool.setuptools]
+packages = ["adexpsnapshot", "adexpsnapshot.parser"]
+
 [tool.setuptools_scm]

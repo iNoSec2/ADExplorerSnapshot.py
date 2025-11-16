@@ -4,20 +4,10 @@
 import sys
 import xml.etree.ElementTree as ET
 
-import pwnlib.term, pwnlib.log, logging
 from bloodhound.ad.utils import ADUtils
 from adexpsnapshot import ADExplorerSnapshot
 
-logging.basicConfig(handlers=[pwnlib.log.console])
-log = pwnlib.log.getLogger(__name__)
-log.setLevel(20)
-
-if pwnlib.term.can_init():
-    pwnlib.term.init()
-
-log.term_mode = pwnlib.term.term_mode
-
-ades = ADExplorerSnapshot(open(sys.argv[1], 'rb'), '.', log)
+ades = ADExplorerSnapshot(open(sys.argv[1], 'rb'), '.')
 ades.preprocessCached()
 
 findDN = f',CN=Dfs-Configuration,CN=System,{ades.rootdomain}'.lower()

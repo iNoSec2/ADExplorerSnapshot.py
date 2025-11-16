@@ -2,7 +2,7 @@
 # author: @oddvarmoe
 
 from adexpsnapshot import ADExplorerSnapshot
-import pwnlib.term, pwnlib.log, logging
+from rich.progress import track
 from bloodhound.ad.utils import ADUtils
 from datetime import datetime, timedelta, timezone
 from certipy.lib.constants import *
@@ -11,6 +11,7 @@ from certipy.commands.find import filetime_to_str
 from pathlib import Path
 import argparse
 import os
+import logging
 from typing import List
 
 def valid_directory(path):
@@ -35,16 +36,8 @@ parser.add_argument("-o", "--output_folder", required=True, type=valid_directory
 parser.add_argument("-e", "--enabled", required=False, help="Only get enabled templates", action="store_true")
 args = parser.parse_args()
 
-logging.basicConfig(handlers=[pwnlib.log.console])
-log = pwnlib.log.getLogger(__name__)
-log.setLevel(20)
-
-if pwnlib.term.can_init():
-    pwnlib.term.init()
-
-log.term_mode = pwnlib.term.term_mode
-
-ades = ADExplorerSnapshot(args.snapshot, ".", log)
+# Console will be automatically initialized with setup_logging() when omitted
+ades = ADExplorerSnapshot(args.snapshot, ".")
 ades.preprocessCached()
 
 # Get snapshot time
@@ -64,7 +57,7 @@ def security_to_bloodhound_aces(security: ActiveDirectorySecurity) -> List:
         if owner_sid in ADUtils.WELLKNOWN_SIDS:
             principal = u'%s-%s' % (ADUtils.ldap2domain(ades.rootdomain).upper(), owner_sid)
             principal_type = ADUtils.WELLKNOWN_SIDS[owner_sid][1].capitalize()
-            principal_accountname = ADUtils.WELLKNOWN_SIDS[sid][0]
+            principal_accountname = ADUtils.WELLKNOWN_SIDS[owner_sid][0]
         else:
             try:
                 entry = ades.snap.getObject(ades.sidcache[owner_sid])
@@ -87,8 +80,6 @@ def security_to_bloodhound_aces(security: ActiveDirectorySecurity) -> List:
         for sid, rights in security.aces.items():
             principal = sid
             principal_type = ""
-
-
 
             if sid in ADUtils.WELLKNOWN_SIDS:
                 principal = u'%s-%s' % (ADUtils.ldap2domain(ades.rootdomain).upper(), sid)
@@ -139,10 +130,9 @@ def security_to_bloodhound_aces(security: ActiveDirectorySecurity) -> List:
 
         return aces
 
-prog = log.progress(f"Going through objects and outputting to files", rate=0.1)
 domainname = ADUtils.ldap2domain(ades.rootdomain).upper()
 
-for idx,obj in enumerate(ades.snap.objects):
+for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
     object_resolved = ADUtils.resolve_ad_entry(obj)
     
     if 'pkicertificatetemplate' in obj.classes:
@@ -284,11 +274,9 @@ for idx,obj in enumerate(ades.snap.objects):
             out_certs.append(f"{ace}")
         out_certs.append("\n")
 
-    prog.status(f"{idx+1}/{ades.snap.header.numObjects}")
-
 if args.output_folder:
     if out_certs:
         outFile_certs = open(Path(args.output_folder / "certs.txt"), "w")
         outFile_certs.write(os.linesep.join(out_certs))
 
-    log.info(f"Output written to files in {args.output_folder}")
+    logging.info(f"Output written to files in {args.output_folder}")
