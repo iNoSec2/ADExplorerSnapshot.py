@@ -367,7 +367,7 @@ class BloodHoundOutput:
             ADUtils.get_entry_property(entry, 'trustDirection'),
             ADUtils.get_entry_property(entry, 'trustType'),
             ADUtils.get_entry_property(entry, 'trustAttributes'),
-            ADUtils.get_entry_property(entry, 'securityIdentifier')
+            ADUtils.get_entry_property(entry, 'securityIdentifier', raw=True)
         )
         
         trust = domtrust.to_output()
@@ -766,4 +766,4 @@ class BloodHoundOutput:
                 })
 
         return aces
-        
+

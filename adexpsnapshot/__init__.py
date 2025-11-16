@@ -159,6 +159,9 @@ class ADExplorerSnapshot(object):
 
     def outputBloodHound(self):
         """Output data in BloodHound JSON format."""
+
+        logging.warning("The BloodHound mode gives incomplete output. Please use the BOFHound mode instead.")
+
         self.preprocess(cache=True)
         from adexpsnapshot.ouput.bloodhound import BloodHoundOutput
         handler = BloodHoundOutput(

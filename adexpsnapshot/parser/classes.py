@@ -142,7 +142,7 @@ class AttributeDict(UserDict):
                 if not raw:
                     if len(octetStr) == 16 and attrName.endswith("guid"):
                         val = str(uuid.UUID(bytes_le=octetStr))
-                    elif attrName == 'objectsid':
+                    elif attrName == 'objectsid' or attrName == 'securityidentifier':
                         val = str(LdapSid(BytesIO(octetStr)))
 
                 values.append(val)
