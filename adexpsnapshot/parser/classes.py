@@ -148,10 +148,8 @@ class AttributeDict(UserDict):
                 values.append(val)
 
         elif attrType == ADSTYPE_BOOLEAN:
-            assert numValues == 1, ["Multiple boolean values, verify data size", self.fileOffset, attrName]
-
             for v in range(numValues):
-                val = bool(structure.uint32(self.fh)) # not sure if uint32 is correct type here, check against more data sets
+                val = bool(structure.uint32(self.fh))
                 values.append(val)
 
         elif attrType == ADSTYPE_INTEGER:

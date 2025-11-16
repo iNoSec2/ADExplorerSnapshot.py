@@ -27,7 +27,7 @@ from enum import Enum
 from typing import List
 
 class ADExplorerSnapshot(object):
-    OutputMode = Enum('OutputMode', ['BloodHound', 'Objects', 'LDIF'])
+    OutputMode = Enum('OutputMode', ['BOFHound', 'BloodHound', 'Objects'])
 
     def __init__(self, snapfile, outputfolder, log=None, snapshot_parser=None):
         self.log = log
@@ -125,13 +125,13 @@ class ADExplorerSnapshot(object):
         if self.log:
             self.log.success(f"Output written to {outputfile}")
 
-    def outputLDIF(self):
+    def outputBOFHound(self):
 
         import codecs, base64, datetime
 
-        outputfile = f"{self.snap.header.server}_{self.snap.header.filetimeUnix}_objects.ldif"
+        outputfile = f"{self.snap.header.server}_{self.snap.header.filetimeUnix}_bofhound.log"
 
-        class LDIFEncoder:
+        class BOFHoundEncoder:
 
             timestamp_attributes = ['whenCreated', 'whenChanged', 'dSCorePropagationData' ]
 
@@ -149,12 +149,12 @@ class ADExplorerSnapshot(object):
                 elif isinstance(obj, (str, float, bool)):
                     return str(obj)
                 else:
-                    raise Exception(f"LDIFEncoder does not support objects of type {type(obj)}")
+                    raise Exception(f"BOFHoundEncoder does not support objects of type {type(obj)}")
 
             def encode_dict(self, obj):
                 lines = []
                 for key in sorted(obj.keys()):
-                    if key in LDIFEncoder.timestamp_attributes:
+                    if key in BOFHoundEncoder.timestamp_attributes:
                         encoded = self.encode_timestamp(obj[key], key)
                     else:
                         encoded = self.encode(obj[key])
@@ -168,13 +168,13 @@ class ADExplorerSnapshot(object):
                     if isinstance(value, list):
                         if len(value) == 0:
                             return "0"
-                        value = value[0]
+                        value = value[0] & 0xFFFFFFFF
                     return datetime.datetime.fromtimestamp(value, datetime.UTC).strftime('%Y%m%d%H%M%S.0Z')
                 except:
                     logging.warning(f"Failed to parse timestamp for attribute {attr}")
                     return "0"
 
-        ldif_encoder = LDIFEncoder()
+        bofhound_encoder = BOFHoundEncoder()
 
         def write_worker(result_q, filename):
             try:
@@ -197,10 +197,10 @@ class ADExplorerSnapshot(object):
                     fh_out.write('--------------------\n')
 
                 try:
-                    encoded_member = ldif_encoder.encode(data)
+                    encoded_member = bofhound_encoder.encode(data)
                     fh_out.write(encoded_member)
                 except TypeError:
-                    logging.error('Data error {0}, could not convert data to LDIF'.format(repr(data)))
+                    logging.error('Data error {0}, could not convert data to BOFHound log'.format(repr(data)))
                 result_q.task_done()
 
             fh_out.close()
@@ -230,7 +230,7 @@ class ADExplorerSnapshot(object):
             self.log.success(f"Output written to {outputfile}")
 
     def outputBloodHound(self):
-        self.preprocessCached()
+        self.preprocess()
 
         self.numUsers = 0
         self.numGroups = 0
@@ -244,42 +244,6 @@ class ADExplorerSnapshot(object):
 
         self.process()
 
-    def preprocessCached(self):
-        cacheFileName = hashlib.md5(f"{self.snap.header.filetime}_{self.snap.header.server}".encode()).hexdigest() + ".cache"
-        cachePath = os.path.join(tempfile.gettempdir(), cacheFileName)
-
-        dico = None
-        try:
-            dico = Unpickler(open(cachePath, "rb")).load()
-        except (OSError, IOError, EOFError) as e:
-            pass
-
-        if dico and dico.get('shelved', False):
-            if self.log:
-                self.log.success("Restored pre-processed information from data cache")
-
-            self.objecttype_guid_map = dico['guidmap']
-            self.sidcache = dico['sidcache']
-            self.dncache = dico['dncache']
-            self.computersidcache = dico['computersidcache']
-            self.domains = dico['domains']
-            self.domaincontrollers = dico['domaincontrollers']
-            self.rootdomain = dico['rootdomain']
-            self.certtemplates = dico['certtemplates']
-        else:
-            self.preprocess()
-
-            dico = {}
-            dico['guidmap'] = self.objecttype_guid_map
-            dico['sidcache'] = self.sidcache
-            dico['dncache'] = self.dncache
-            dico['computersidcache'] = self.computersidcache
-            dico['domains'] = self.domains
-            dico['domaincontrollers'] = self.domaincontrollers
-            dico['rootdomain'] = self.rootdomain
-            dico['certtemplates'] = self.certtemplates
-            dico['shelved'] = True
-            Pickler(open(cachePath, "wb")).dump(dico)
 
     # build caches: guidmap, domains, forest_domains, computers
     def preprocess(self):
@@ -1227,7 +1191,7 @@ def main():
 
     parser.add_argument('snapshot', type=argparse.FileType('rb'), help="Path to the snapshot .dat file.")
     parser.add_argument('-o', '--output', required=False, type=pathlib.Path, help="Path to the *.json output folder. Folder will be created if it doesn't exist. Defaults to the current directory.", default=".")
-    parser.add_argument('-m', '--mode', required=False, help="The output mode to use. Besides BloodHound JSON output files, it is possible to dump all objects with all attributes to NDJSON or LDIF formats. Defaults to BloodHound output mode.", choices=ADExplorerSnapshot.OutputMode.__members__, default='BloodHound')
+    parser.add_argument('-m', '--mode', required=False, help="The output mode to use. Defaults to BOFHound output mode, which can then be used with BOFHound. Can also directly output to BloodHound JSON output files (with limitations). In Objects mode all objects with all attributes are outputted to NDJSON.", choices=ADExplorerSnapshot.OutputMode.__members__, default='BOFHound')
 
     args = parser.parse_args()
 
@@ -1259,8 +1223,8 @@ def main():
         ades.outputBloodHound()
     if outputmode == ADExplorerSnapshot.OutputMode.Objects:
         ades.outputObjects()
-    if outputmode == ADExplorerSnapshot.OutputMode.LDIF:
-        ades.outputLDIF()
+    if outputmode == ADExplorerSnapshot.OutputMode.BOFHound:
+        ades.outputBOFHound()
 
 if __name__ == '__main__':
     main()
