@@ -17,7 +17,7 @@ from frozendict import frozendict
 from bloodhound.enumeration.outputworker import OutputWorker
 
 from certipy.lib.constants import *
-from certipy.lib.security import ActiveDirectorySecurity, CertificateSecurity as CertificateSecurity, CASecurity
+from certipy.lib.security import ActiveDirectorySecurity, CertificateSecurity, CASecurity
 from certipy.commands.find import filetime_to_str
 from asn1crypto import x509
 
