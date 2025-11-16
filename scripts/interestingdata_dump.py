@@ -2,12 +2,13 @@
 # author: @oddvarmoe
 
 from adexpsnapshot import ADExplorerSnapshot
-import pwnlib.term, pwnlib.log, logging
+from rich.progress import track
 from bloodhound.ad.utils import ADUtils
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import argparse
 import os
+import logging
 
 def valid_directory(path):
     """Check if the provided path is a valid directory or create it if it does not exist."""
@@ -37,16 +38,7 @@ parser.add_argument("snapshot", type=argparse.FileType("rb"), help="Path to the 
 parser.add_argument("-o", "--output_folder", required=True, type=valid_directory, help="Folder to save output to")
 args = parser.parse_args()
 
-logging.basicConfig(handlers=[pwnlib.log.console])
-log = pwnlib.log.getLogger(__name__)
-log.setLevel(20)
-
-if pwnlib.term.can_init():
-    pwnlib.term.init()
-
-log.term_mode = pwnlib.term.term_mode
-
-ades = ADExplorerSnapshot(args.snapshot, ".", log)
+ades = ADExplorerSnapshot(args.snapshot, ".")
 ades.preprocessCached()
 
 # Get snapshot time
@@ -92,8 +84,7 @@ out_pwdnotreqd.append("samaccountname||distinguishedName||useraccountcontrol||lo
 out_precreated.append("samaccountname||useraccountcontrol||pwdlastset||whencreated||description")
 out_sql_systems.append("samaccountname||dnshostname||operatingsystem||operatingsystemversion||description||lastlogontimestamp")
 
-prog = log.progress(f"Going through objects and outputting to files", rate=0.1)    
-for idx,obj in enumerate(ades.snap.objects):
+for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
     # get computers
     object_resolved = ADUtils.resolve_ad_entry(obj)
     if object_resolved['type'] == 'Computer':
@@ -228,8 +219,6 @@ for idx,obj in enumerate(ades.snap.objects):
             distinguishedname = ADUtils.get_entry_property(obj, 'distinguishedname')
             out_shares.append(f"{name}||{uncname}||{distinguishedname}")
 
-    prog.status(f"{idx+1}/{ades.snap.header.numObjects}")
-
 
 
 if args.output_folder:
@@ -297,4 +286,4 @@ if args.output_folder:
         outFile_sql_systems = open(Path(args.output_folder / "sql_systems.txt"), "w")
         outFile_sql_systems.write(os.linesep.join(out_sql_systems))
 
-    log.info(f"Output written to files in {args.output_folder}")
+    logging.info(f"Output written to files in {args.output_folder}")

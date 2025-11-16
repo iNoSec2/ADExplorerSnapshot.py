@@ -2,7 +2,6 @@
 # author: Signum21
 
 from adexpsnapshot import ADExplorerSnapshot
-import pwnlib.term, pwnlib.log, logging
 import ipaddress
 import argparse
 import os
@@ -13,16 +12,7 @@ parser.add_argument("-p", "--parse_ips", required=False, help="Expand subnets in
 parser.add_argument("-o", "--output_file", required=False, help="Save output to file")
 args = parser.parse_args()
 
-logging.basicConfig(handlers=[pwnlib.log.console])
-log = pwnlib.log.getLogger(__name__)
-log.setLevel(20)
-
-if pwnlib.term.can_init():
-    pwnlib.term.init()
-
-log.term_mode = pwnlib.term.term_mode
-
-ades = ADExplorerSnapshot(args.snapshot, ".", log)
+ades = ADExplorerSnapshot(args.snapshot, ".")
 ades.preprocessCached()
 out = set()
 
