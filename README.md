@@ -5,7 +5,7 @@
 
 ADExplorerSnapshot.py is an AD Explorer snapshot parser. It is made as an ingestor for [BloodHound](https://bloodhound.readthedocs.io/) via [BOFHound](https://github.com/coffeegist/bofhound), and also supports full-object dumping to NDJSON.
 
-AD Explorer allows you to connect to a DC and browse LDAP data. It can also create snapshots of the server you are currently attached to. This tool allows you to convert those snapshots to BloodHound-compatible JSON files, or dump all available objects in the snapshot to NDJSON for easier processing.
+AD Explorer allows you to connect to a DC and browse LDAP data. It can also create snapshots of the server you are currently attached to. This tool allows you to convert those snapshots to BOFHound format or BloodHound-compatible JSON files, or dump all available objects in the snapshot to NDJSON for easier processing.
 
 ![ADExplorer](meta/adexplorer.png)
 
