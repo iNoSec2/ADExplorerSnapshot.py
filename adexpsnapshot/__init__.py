@@ -197,7 +197,7 @@ def main():
     parser = argparse.ArgumentParser(add_help=True, description='AD Explorer snapshot ingestor for BloodHound', formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('snapshot', type=argparse.FileType('rb'), help="Path to the snapshot .dat file.")
-    parser.add_argument('-o', '--output', required=False, type=pathlib.Path, help="Path to the *.json output folder. Folder will be created if it doesn't exist. Defaults to the current directory.", default=".")
+    parser.add_argument('-o', '--output', required=False, type=pathlib.Path, help="Path to an output folder. Folder will be created if it doesn't exist. Defaults to the current directory.", default=".")
     parser.add_argument('-m', '--mode', required=False, help="The output mode to use. Defaults to BOFHound output mode, which can then be used with BOFHound. Can also directly output to BloodHound JSON output files (with limitations). In Objects mode all objects with all attributes are outputted to NDJSON.", choices=ADExplorerSnapshot.OutputMode.__members__, default='BOFHound')
 
     args = parser.parse_args()
