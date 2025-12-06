@@ -13,9 +13,8 @@ structure.load("""
         uint32 numObjects;
         uint32 numAttributes;
 
-        uint32 fileoffsetLow;
-        uint32 fileoffsetHigh;
-        uint32 fileoffsetEnd;
+        uint64 metadataOffset;
+        uint64 treeviewOffset;
 
         int unk0x43a;
     };
