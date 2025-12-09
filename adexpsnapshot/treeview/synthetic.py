@@ -7,6 +7,7 @@ objects for these missing parents.
 """
 
 import struct
+from io import BytesIO
 
 
 def create_synthetic_object(dn, snap):
@@ -21,7 +22,6 @@ def create_synthetic_object(dn, snap):
     - mappingTable entries (8 bytes each)
     - attribute data
     """
-    from io import BytesIO
     
     # Find property index for distinguishedName
     dn_prop_idx = snap.propertyDict.get('distinguishedName')
@@ -79,8 +79,8 @@ def create_synthetic_objects_data(missing_dns, snap, start_offset):
         start_offset: File offset where synthetic objects will be written
     
     Returns:
-        (synthetic_objects_dict, synthetic_data_bytes)
-        synthetic_objects_dict: DN -> {'obj_idx', 'obj_offset'}
+        (synthetic_offsets, synthetic_data_bytes)
+        synthetic_offsets: DN -> obj_offset (int)
         synthetic_data_bytes: concatenated binary data for all synthetic objects
     """
     if not missing_dns:
@@ -91,20 +91,15 @@ def create_synthetic_objects_data(missing_dns, snap, start_offset):
     synthetic_objects = {}
     all_data = BytesIO()
     current_offset = start_offset
-    current_idx = len(snap.objectOffsets)  # Start after real objects
     
     # Sort by DN length to create parents before children
     for dn in sorted(missing_dns, key=len):
         obj_data = create_synthetic_object(dn, snap)
         
-        synthetic_objects[dn] = {
-            'obj_idx': current_idx,
-            'obj_offset': current_offset
-        }
+        synthetic_objects[dn] = current_offset
         
         all_data.write(obj_data)
         current_offset += len(obj_data)
-        current_idx += 1
     
     return synthetic_objects, all_data.getvalue()
 

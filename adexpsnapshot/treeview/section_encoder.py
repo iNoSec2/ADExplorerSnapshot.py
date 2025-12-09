@@ -1,13 +1,10 @@
 """
-Clean universal section encoder for all naming contexts.
-
-One algorithm, no special cases, works for Domain/Configuration/Schema.
+Builds the treeview structure for a naming context.
 """
 
-import struct
 from collections import defaultdict
 from io import BytesIO
-
+from adexpsnapshot.treeview.structure import treeview_structure
 
 def build_nc_tree(snap, nc_root, nc_filter, dncache=None, synthetic_collector=None):
     """
@@ -107,7 +104,7 @@ def build_nc_tree(snap, nc_root, nc_filter, dncache=None, synthetic_collector=No
     return build_node(root_dn)
 
 
-def encode_section(tree, snap):
+def encode_section(tree):
     """
     Universal section encoder using cstruct for type safety.
     
@@ -117,7 +114,6 @@ def encode_section(tree, snap):
     Optimization: Leaf children are stored ONLY inline in their parent,
     not as standalone entries (eliminates redundancy).
     """
-    from adexpsnapshot.treeview.structure import treeview_structure
     
     # Flatten tree to get all nodes
     def flatten(node):

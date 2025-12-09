@@ -206,7 +206,11 @@ def mode_output(ades, args):
 def mode_enrich(ades):
     """Handle enrichment mode - reconstruct missing treeview metadata."""
     from adexpsnapshot.enrich import enrich_snapshot
-    enrich_snapshot(ades)
+    res = enrich_snapshot(ades)
+    if res:
+        ades.console.print(f"[green]✓[/green] Enrichment complete")
+    else:
+        ades.console.print(f"[red]✗[/red] Enrichment skipped or failed")
 
 def main():
     console = setup_logging()
