@@ -34,7 +34,7 @@ class ADExplorerSnapshot(object):
         filetimeiso = datetime.datetime.fromtimestamp(self.snap.header.filetimeUnix).isoformat()
         logging.info(f'Server: {self.snap.header.server}')
         logging.info(f'Time of snapshot: {filetimeiso}')
-        logging.info('Mapping offset: 0x{:x}'.format(self.snap.header.mappingOffset))
+        logging.info('Metadata offset: 0x{:x}'.format(self.snap.header.metadataOffset))
         logging.info(f'Object count: {self.snap.header.numObjects}')
 
         self.snap.parseProperties()
@@ -91,7 +91,9 @@ class ADExplorerSnapshot(object):
                 self.dncache[str(distinguishedName)] = idx
 
             # get domains
-            if 'domain' in obj.classes:
+            # Domain objects have 'domain' class AND objectSid attribute
+            # DNS zones have 'domain' class but no objectSid
+            if 'domain' in obj.classes and objectSid:
                 if self.rootdomain is not None:  # is it possible to find multiple?
                     logging.warning("Multiple domains in snapshot(?)")
                 else:
@@ -191,14 +193,34 @@ def setup_logging(level=logging.INFO):
     
     return console
 
+def mode_output(ades, args):
+    """Handle output mode operations (BOFHound, BloodHound, Objects)."""
+    outputmode = ADExplorerSnapshot.OutputMode[args.mode]
+    if outputmode == ADExplorerSnapshot.OutputMode.BloodHound:
+        ades.outputBloodHound()
+    elif outputmode == ADExplorerSnapshot.OutputMode.Objects:
+        ades.outputObjects()
+    elif outputmode == ADExplorerSnapshot.OutputMode.BOFHound:
+        ades.outputBOFHound()
+
+def mode_enrich(ades):
+    """Handle enrichment mode - reconstruct missing treeview metadata."""
+    from adexpsnapshot.enrich import enrich_snapshot
+    res = enrich_snapshot(ades)
+    if res:
+        ades.console.print(f"[green]✓[/green] Enrichment complete")
+    else:
+        ades.console.print(f"[red]✗[/red] Enrichment skipped or failed")
 
 def main():
+    console = setup_logging()
 
     parser = argparse.ArgumentParser(add_help=True, description='AD Explorer snapshot ingestor for BloodHound', formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('snapshot', type=argparse.FileType('rb'), help="Path to the snapshot .dat file.")
     parser.add_argument('-o', '--output', required=False, type=pathlib.Path, help="Path to an output folder. Folder will be created if it doesn't exist. Defaults to the current directory.", default=".")
     parser.add_argument('-m', '--mode', required=False, help="The output mode to use. Defaults to BOFHound output mode, which can then be used with BOFHound. Can also directly output to BloodHound JSON output files (with limitations). In Objects mode all objects with all attributes are outputted to NDJSON.", choices=ADExplorerSnapshot.OutputMode.__members__, default='BOFHound')
+    parser.add_argument('-e', '--enrich', action='store_true', help="Reconstruct treeview metadata if missing and save to enriched file.")
 
     args = parser.parse_args()
 
@@ -210,19 +232,15 @@ def main():
             return
     
     if not os.path.isdir(args.output):
-        logging.warning(f"Path '{args.output}' does not exist or is not a folder.")
-        parser.print_help()
+        logging.error(f"Path '{args.output}' does not exist or is not a folder.")
         return
     
-    ades = ADExplorerSnapshot(args.snapshot, args.output)
-
-    outputmode = ADExplorerSnapshot.OutputMode[args.mode]
-    if outputmode == ADExplorerSnapshot.OutputMode.BloodHound:
-        ades.outputBloodHound()
-    if outputmode == ADExplorerSnapshot.OutputMode.Objects:
-        ades.outputObjects()
-    if outputmode == ADExplorerSnapshot.OutputMode.BOFHound:
-        ades.outputBOFHound()
+    ades = ADExplorerSnapshot(args.snapshot, args.output, console=console)
+    
+    if args.enrich:
+        mode_enrich(ades)
+    else:
+        mode_output(ades, args)
 
 if __name__ == '__main__':
     main()

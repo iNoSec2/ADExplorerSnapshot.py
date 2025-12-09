@@ -12,23 +12,26 @@ fh = open(sys.argv[1],"rb")
 ades = ADExplorerSnapshot(fh, '.')
 ades.preprocessCached()
 
-findDN = f',CN=MicrosoftDNS,CN=System,{ades.rootdomain}'.lower()
-
-print()
+findDN = [
+    f',CN=MicrosoftDNS,CN=System,{ades.rootdomain}'.lower(),
+    f',CN=MicrosoftDNS,DC=ForestDnsZones,{ades.rootdomain}'.lower(),
+    f',CN=MicrosoftDNS,DC=DomainDnsZones,{ades.rootdomain}'.lower(),
+]
 
 for k,v in ades.dncache.items():
-    if k.lower().endswith(findDN):
-        entry = ades.snap.getObject(v)
-        for address in ADUtils.get_entry_property(entry, 'dnsRecord', [], raw=True):
-            dr = dnsdump.DNS_RECORD(address)
-            if dr['Type'] == 1:
-                address = dnsdump.DNS_RPC_RECORD_A(dr['Data'])
-                print("[+]","Type:",dnsdump.RECORD_TYPE_MAPPING[dr['Type']],"name:",k.split(',')[0].split('=')[1],"value:",address.formatCanonical())
-            if dr['Type'] in [a for a in dnsdump.RECORD_TYPE_MAPPING if dnsdump.RECORD_TYPE_MAPPING[a] in ['CNAME', 'NS', 'PTR']]:
-                address = dnsdump.DNS_RPC_RECORD_NODE_NAME(dr['Data'])
-                print("[+]","Type:",dnsdump.RECORD_TYPE_MAPPING[dr['Type']],"name:",k.split(',')[0].split('=')[1],"value:",address[list(address.fields)[0]].toFqdn())
-            elif dr['Type'] == 28:
-                address = dnsdump.DNS_RPC_RECORD_AAAA(dr['Data'])
-                print("[+]","Type:",dnsdump.RECORD_TYPE_MAPPING[dr['Type']],"name:",k.split(',')[0].split('=')[1],"value:",address.formatCanonical())
-            elif dr['Type'] not in [a for a in dnsdump.RECORD_TYPE_MAPPING if dnsdump.RECORD_TYPE_MAPPING[a] in ['A', 'AAAA,' 'CNAME', 'NS']]:
-                print("[+]","name:",k.split(',')[0].split('=')[1],'Unexpected record type seen: {}'.format(dr['Type']))
+    for dn in findDN:
+        if k.lower().endswith(dn.lower()):
+            entry = ades.snap.getObject(v)
+            for address in ADUtils.get_entry_property(entry, 'dnsRecord', [], raw=True):
+                dr = dnsdump.DNS_RECORD(address)
+                if dr['Type'] == 1:
+                    address = dnsdump.DNS_RPC_RECORD_A(dr['Data'])
+                    print("[+]","Type:",dnsdump.RECORD_TYPE_MAPPING[dr['Type']],"name:",k.split(',')[0].split('=')[1],"value:",address.formatCanonical())
+                if dr['Type'] in [a for a in dnsdump.RECORD_TYPE_MAPPING if dnsdump.RECORD_TYPE_MAPPING[a] in ['CNAME', 'NS', 'PTR']]:
+                    address = dnsdump.DNS_RPC_RECORD_NODE_NAME(dr['Data'])
+                    print("[+]","Type:",dnsdump.RECORD_TYPE_MAPPING[dr['Type']],"name:",k.split(',')[0].split('=')[1],"value:",address[list(address.fields)[0]].toFqdn())
+                elif dr['Type'] == 28:
+                    address = dnsdump.DNS_RPC_RECORD_AAAA(dr['Data'])
+                    print("[+]","Type:",dnsdump.RECORD_TYPE_MAPPING[dr['Type']],"name:",k.split(',')[0].split('=')[1],"value:",address.formatCanonical())
+                elif dr['Type'] not in [a for a in dnsdump.RECORD_TYPE_MAPPING if dnsdump.RECORD_TYPE_MAPPING[a] in ['A', 'AAAA,' 'CNAME', 'NS']]:
+                    print("[+]","name:",k.split(',')[0].split('=')[1],'Unexpected record type seen: {}'.format(dr['Type']))

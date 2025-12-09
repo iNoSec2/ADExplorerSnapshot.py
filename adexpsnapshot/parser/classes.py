@@ -247,7 +247,6 @@ class Header(WrapStruct):
         super().__init__(snap, in_obj)
 
         self.server = self.server.rstrip('\x00')
-        self.mappingOffset = (self.fileoffsetHigh << 32) | self.fileoffsetLow
         self.filetimeUnix = ADUtils.win_timestamp_to_unix(self.filetime)
 
 class Snapshot(object):
@@ -300,7 +299,7 @@ class Snapshot(object):
     objects = property(getObjects)
 
     def parseProperties(self):
-        self.fh.seek(self.header.mappingOffset)
+        self.fh.seek(self.header.metadataOffset)
 
         properties_with_header = structure.Properties(self.fh)
         self.properties = []
