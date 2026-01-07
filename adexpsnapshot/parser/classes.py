@@ -124,7 +124,7 @@ class AttributeDict(UserDict):
         # https://docs.microsoft.com/en-us/windows/win32/api/iads/ns-iads-adsvalue
         # https://docs.microsoft.com/en-us/windows/win32/adsi/adsi-simple-data-types
 
-        if attrType in [ADSTYPE_DN_STRING, ADSTYPE_CASE_IGNORE_STRING, ADSTYPE_CASE_IGNORE_STRING, ADSTYPE_PRINTABLE_STRING, ADSTYPE_NUMERIC_STRING, ADSTYPE_OBJECT_CLASS]:
+        if attrType in [ADSTYPE_DN_STRING, ADSTYPE_CASE_EXACT_STRING, ADSTYPE_CASE_IGNORE_STRING, ADSTYPE_PRINTABLE_STRING, ADSTYPE_NUMERIC_STRING, ADSTYPE_OBJECT_CLASS]:
             offsets = structure.uint32[numValues](self.fh)
 
             for v in range(numValues):
