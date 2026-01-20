@@ -117,6 +117,11 @@ def enrich_snapshot(ades):
     config_tree = build_nc_tree(snap, config_root, lambda dn: dn.endswith(config_root) and not dn.endswith(schema_root), dncache, synthetic_collector)
     schema_tree = build_nc_tree(snap, schema_root, lambda dn: dn.endswith(schema_root), dncache, synthetic_collector)
 
+    missing_required = [name for name, tree in (("Domain", domain_tree), ("Configuration", config_tree), ("Schema", schema_tree)) if tree is None]
+    if missing_required:
+        logging.error(f"Missing required NC tree(s): {', '.join(missing_required)}. Snapshot may be incomplete; cannot enrich.")
+        return False
+
     domain_dns_zones_tree = None
     if has_domain_dns:
         domain_dns_zones_tree = build_nc_tree(snap, domain_dns_zones_root, lambda dn: dn.endswith(domain_dns_zones_root), dncache, synthetic_collector)
