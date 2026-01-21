@@ -61,6 +61,10 @@ out_plaintextpwd = []
 out_pwdnotreqd = []
 out_precreated = []
 out_sql_systems = []
+out_technologies = []
+
+# Technology variables
+technologies_sccm = False
 
 # Attributes to check for plaintext passwords
 plaintext_pwd_attributes = ['UserPassword','UnixUserPassword','unicodePwd','msSFU30Password','orclCommonAttribute','os400Password']
@@ -83,6 +87,7 @@ out_plaintextpwd.append("samaccountname||distinguishedName||attribute")
 out_pwdnotreqd.append("samaccountname||distinguishedName||useraccountcontrol||logoncount")
 out_precreated.append("samaccountname||useraccountcontrol||pwdlastset||whencreated||description")
 out_sql_systems.append("samaccountname||dnshostname||operatingsystem||operatingsystemversion||description||lastlogontimestamp")
+out_technologies.append("technology||notes")
 
 for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
     # get computers
@@ -122,6 +127,7 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
         if ms_mcs_admpwd:
             ms_mcs_admpwdexpirationtime = ADUtils.get_entry_property(obj, 'ms-Mcs-AdmPwdExpirationTime')
             out_laps.append(f"{dnshostname}||{ms_mcs_admpwd}||{ms_mcs_admpwdexpirationtime}")
+            out_technologies.append("LAPS||Check laps.txt")
         
         # Check for asreproast
         if useraccountcontrol is not None and useraccountcontrol & 4194304:
@@ -201,6 +207,8 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
             mssmssitecode = ADUtils.get_entry_property(obj, 'mssmssitecode')
             mssmsversion = ADUtils.get_entry_property(obj, 'mssmsversion')
             out_sccm.append(f"{mssmsmpname}||{dnshostname}||{distinguishedname}||{mssmssitecode}||{mssmsversion}")
+            technologies_sccm = True
+            
         # get printers
         if "printQueue" in ADUtils.get_entry_property(obj, 'objectClass', "0"):
             name = ADUtils.get_entry_property(obj, 'name')
@@ -219,7 +227,9 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
             distinguishedname = ADUtils.get_entry_property(obj, 'distinguishedname')
             out_shares.append(f"{name}||{uncname}||{distinguishedname}")
 
-
+    technologies_adcs = True if 'pkicertificatetemplate' in obj.classes else False
+    technologies_exchange = True if 'msexchexchangeserver' in obj.classes else False
+    technologies_adfs = True if 'deviceregistrationservice' in obj.classes else False
 
 if args.output_folder:
     if out_computers:
@@ -285,5 +295,17 @@ if args.output_folder:
     if out_sql_systems:
         outFile_sql_systems = open(Path(args.output_folder / "sql_systems.txt"), "w")
         outFile_sql_systems.write(os.linesep.join(out_sql_systems))
+        
+    if out_technologies:
+        outFile_technologies = open(Path(args.output_folder / "technologies.txt"), "w")
+        if technologies_sccm == True:
+            out_technologies.append("SCCM||Check sccm.txt")
+        if technologies_adcs == True:
+            out_technologies.append("ADCS||ADCS Container found (run cert_dump script)")
+        if technologies_exchange == True:
+            out_technologies.append("Exchange||Local Exchange server")
+        if technologies_adfs == True:
+            out_technologies.append("ADFS||ADFS is installed")
+        outFile_technologies.write(os.linesep.join(out_technologies))
 
     logging.info(f"Output written to files in {args.output_folder}")
