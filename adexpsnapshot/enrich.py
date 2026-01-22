@@ -87,21 +87,16 @@ def enrich_snapshot(ades):
     dncache = ades.dncache
         
     # Identify NC roots from the snapshot
-    domain_root = ades.rootdomain
-    if not domain_root:
-        logging.error("No domain root found in snapshot!")
+    if not ades.domain_dn or not ades.config_dn or not ades.schema_dn or not ades.forest_dn:
+        logging.error("No domain, config, schema, or forest root found in snapshot!")
         return False
     
-    # Configuration NC is always CN=Configuration,<domain_root>
-    # Schema NC is always CN=Schema,CN=Configuration,<domain_root>
-    config_root = f"CN=Configuration,{domain_root}"
-    schema_root = f"CN=Schema,CN=Configuration,{domain_root}"
-    domain_dns_zones_root = f"DC=DomainDnsZones,{domain_root}"
-    forest_dns_zones_root = f"DC=ForestDnsZones,{domain_root}"
+    domain_dns_zones_root = f"DC=DomainDnsZones,{ades.domain_dn}"
+    forest_dns_zones_root = f"DC=ForestDnsZones,{ades.forest_dn}"
 
-    logging.info(f"Domain root: {domain_root}")
-    logging.info(f"Config root: {config_root}")
-    logging.info(f"Schema root: {schema_root}")
+    logging.info(f"Domain root: {ades.domain_dn}")
+    logging.info(f"Config root: {ades.config_dn}")
+    logging.info(f"Schema root: {ades.schema_dn}")
     logging.info(f"Domain DNS Zones root: {domain_dns_zones_root}")
     logging.info(f"Forest DNS Zones root: {forest_dns_zones_root}")
     
@@ -113,9 +108,9 @@ def enrich_snapshot(ades):
     logging.info("Building trees...")
     synthetic_collector = {}  # Will be populated during tree building
     
-    domain_tree = build_nc_tree(snap, domain_root, lambda dn: dn.endswith(domain_root) and not dn.endswith(config_root) and not dn.endswith(domain_dns_zones_root) and not dn.endswith(forest_dns_zones_root), dncache, synthetic_collector)
-    config_tree = build_nc_tree(snap, config_root, lambda dn: dn.endswith(config_root) and not dn.endswith(schema_root), dncache, synthetic_collector)
-    schema_tree = build_nc_tree(snap, schema_root, lambda dn: dn.endswith(schema_root), dncache, synthetic_collector)
+    domain_tree = build_nc_tree(snap, ades.domain_dn, lambda dn: dn.endswith(ades.domain_dn) and not dn.endswith(ades.config_dn) and not dn.endswith(domain_dns_zones_root) and not dn.endswith(forest_dns_zones_root), dncache, synthetic_collector)
+    config_tree = build_nc_tree(snap, ades.config_dn, lambda dn: dn.endswith(ades.config_dn) and not dn.endswith(ades.schema_dn), dncache, synthetic_collector)
+    schema_tree = build_nc_tree(snap, ades.schema_dn, lambda dn: dn.endswith(ades.schema_dn), dncache, synthetic_collector)
 
     missing_required = [name for name, tree in (("Domain", domain_tree), ("Configuration", config_tree), ("Schema", schema_tree)) if tree is None]
     if missing_required:

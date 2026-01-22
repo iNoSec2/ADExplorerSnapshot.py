@@ -13,9 +13,9 @@ ades = ADExplorerSnapshot(fh, '.')
 ades.preprocessCached()
 
 findDN = [
-    f',CN=MicrosoftDNS,CN=System,{ades.rootdomain}'.lower(),
-    f',CN=MicrosoftDNS,DC=ForestDnsZones,{ades.rootdomain}'.lower(),
-    f',CN=MicrosoftDNS,DC=DomainDnsZones,{ades.rootdomain}'.lower(),
+    f',CN=MicrosoftDNS,CN=System,{ades.domain_dn}'.lower(),
+    f',CN=MicrosoftDNS,DC=ForestDnsZones,{ades.forest_dn}'.lower(),
+    f',CN=MicrosoftDNS,DC=DomainDnsZones,{ades.domain_dn}'.lower(),
 ]
 
 for k,v in ades.dncache.items():

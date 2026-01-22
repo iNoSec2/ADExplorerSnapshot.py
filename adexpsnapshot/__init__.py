@@ -47,8 +47,13 @@ class ADExplorerSnapshot(object):
         self.domains = CaseInsensitiveDict()
         self.objecttype_guid_map = CaseInsensitiveDict()
         self.domaincontrollers = []
-        self.rootdomain = None
         self.certtemplates = defaultdict(set)
+
+        self.rootdomain = None
+        self.domain_dn = None
+        self.config_dn = None
+        self.schema_dn = None
+        self.forest_dn = None
 
     def preprocess(self, cache=False):
         if cache:
@@ -67,8 +72,13 @@ class ADExplorerSnapshot(object):
                 self.computersidcache = dico['computersidcache']
                 self.domains = dico['domains']
                 self.domaincontrollers = dico['domaincontrollers']
-                self.rootdomain = dico['rootdomain']
                 self.certtemplates = dico['certtemplates']
+
+                self.rootdomain = dico['rootdomain']
+                self.domain_dn = dico['domain_dn']
+                self.config_dn = dico['config_dn']
+                self.schema_dn = dico['schema_dn']
+                self.forest_dn = dico['forest_dn']
 
                 self.console.print(f"[green]✓[/green] Using cached data for preprocessing")
                 return
@@ -97,8 +107,18 @@ class ADExplorerSnapshot(object):
                 if self.rootdomain is not None:  # is it possible to find multiple?
                     logging.warning("Multiple domains in snapshot(?)")
                 else:
-                    self.rootdomain = str(distinguishedName)
+                    self.rootdomain = str(distinguishedName) # keeping for backward compat
+                    self.domain_dn = str(distinguishedName)
                     self.domains[str(distinguishedName)] = idx
+
+                    objectCategory = ADUtils.get_entry_property(obj, 'objectCategory')
+                    try:
+                        _, self.schema_dn = objectCategory.split(',', 1)
+                        _, self.config_dn = self.schema_dn.split(',', 1)
+                        _, self.forest_dn = self.config_dn.split(',', 1)
+                    except (ValueError, AttributeError):
+                        logging.warning("Failed to parse schema, config, or forest DN from objectCategory")
+                        pass
 
             # get forest domains
             if 'crossref' in obj.classes:
@@ -134,6 +154,10 @@ class ADExplorerSnapshot(object):
                 'domains': self.domains,
                 'domaincontrollers': self.domaincontrollers,
                 'rootdomain': self.rootdomain,
+                'domain_dn': self.domain_dn,
+                'config_dn': self.config_dn,
+                'schema_dn': self.schema_dn,
+                'forest_dn': self.forest_dn,
                 'certtemplates': self.certtemplates,
                 'unixtime': self.snap.header.filetimeUnix
             }
