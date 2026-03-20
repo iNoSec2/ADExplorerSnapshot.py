@@ -206,7 +206,11 @@ class BloodHoundOutput:
         props['enabled'] = ADUtils.get_entry_property(entry, 'userAccountControl', default=0) & 2 == 0
         props['trustedtoauth'] = ADUtils.get_entry_property(entry, 'userAccountControl', default=0) & 0x01000000 == 0x01000000
         props['samaccountname'] = ADUtils.get_entry_property(entry, 'sAMAccountName')
-        props['haslaps'] = ADUtils.get_entry_property(entry, 'ms-mcs-admpwdexpirationtime', 0) != 0
+        props['haslaps'] = (
+            ADUtils.get_entry_property(entry, 'ms-mcs-admpwdexpirationtime', 0) != 0
+            or
+            ADUtils.get_entry_property(entry, 'msLAPS-PasswordExpirationTime', 0) != 0
+        )
         props['lastlogon'] = ADUtils.win_timestamp_to_unix(ADUtils.get_entry_property(entry, 'lastlogon', default=-1, raw=True))
         props['lastlogontimestamp'] = ADUtils.win_timestamp_to_unix(ADUtils.get_entry_property(entry, 'lastlogontimestamp', default=-1, raw=True))
         if props['lastlogontimestamp'] == 0:
@@ -537,7 +541,11 @@ class BloodHoundOutput:
         return frozenset(aces)
 
     def parse_acl(self, entry, entrytype, acl):
-        parselaps = entrytype == 'computer' and entry['Properties']['haslaps'] and "ms-mcs-admpwd" in self.objecttype_guid_map
+        parselaps = entrytype == 'computer' and entry['Properties']['haslaps'] and (
+            "ms-mcs-admpwd" in self.objecttype_guid_map or
+            "ms-laps-password" in self.objecttype_guid_map or
+            "ms-laps-encryptedpassword" in self.objecttype_guid_map
+        )
         aces = self._parse_acl_cached(parselaps, entrytype, acl)
         self.cacheInfo = self._parse_acl_cached.cache_info()
         return aces
