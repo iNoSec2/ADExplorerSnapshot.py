@@ -57,7 +57,7 @@ class ADExplorerSnapshot(object):
 
     def preprocess(self, cache=False):
         if cache:
-            cacheFileName = self.snapfile.name.replace(".dat", ".cache")
+            cacheFileName = str(pathlib.Path(self.snapfile.name).with_suffix('.cache'))
 
             dico = None
             try:
